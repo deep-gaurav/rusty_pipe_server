@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update
-RUN apt install curl git build-essential -y
+RUN apt install curl git build-essential libssl-dev pkg-config -y
 
 ADD . /src
 RUN curl https://sh.rustup.rs -sSf --output rustinstaller
