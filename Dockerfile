@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update
-RUN apt install bash git -y
+RUN apt install curl git -y
 
 ADD . /src
 RUN curl https://sh.rustup.rs -sSf --output rustinstaller
