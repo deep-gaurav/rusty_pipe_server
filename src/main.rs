@@ -1,14 +1,18 @@
+mod search;
+
 use serde::{Serialize,Deserialize};
 
 use async_trait::async_trait;
 use rusty_pipe::downloader_trait::Downloader;
 use rusty_pipe::youtube_extractor::stream_extractor::YTStreamExtractor;
+use rusty_pipe::youtube_extractor::search_extractor::{YTSearchExtractor, YTSearchItem};
 
 use juniper::{EmptyMutation, EmptySubscription, FieldError, RootNode};
 use warp::{http::Response, Filter};
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::str::FromStr;
+use search::Search;
 
 // use juniper_warp::
 struct DownloaderObj;
@@ -39,14 +43,17 @@ impl Downloader for DownloaderObj {
 }
 
 #[derive(Clone)]
-struct Context {}
+pub struct Context {}
 impl juniper::Context for Context {}
 
-struct YoutubeStreamItem {
+struct Video {
     extractor: YTStreamExtractor<DownloaderObj>,
 }
+
+
+
 #[juniper::graphql_object(Context = Context)]
-impl YoutubeStreamItem {
+impl Video {
     fn video_streams(&self) -> Result<Vec<StreamItem>, FieldError> {
         let streams = self.extractor.get_video_stream()?;
         let mut v = vec![];
@@ -145,6 +152,8 @@ impl YoutubeStreamItem {
 
 }
 
+
+
 #[derive(juniper::GraphQLObject,Serialize,Deserialize)]
 pub struct StreamItem {
     pub url: String,
@@ -175,12 +184,22 @@ struct Query;
 
 #[juniper::graphql_object(Context = Context)]
 impl Query {
-    async fn youtube_stream(video_id: String) -> Result<YoutubeStreamItem, FieldError> {
+    async fn video(video_id: String) -> Result<Video, FieldError> {
         let ytextractor = YTStreamExtractor::new(&video_id, DownloaderObj).await?;
-        Ok(YoutubeStreamItem {
+        Ok(Video {
             extractor: ytextractor,
         })
     }
+
+    async fn search(query: String) -> Result<Search, FieldError>{
+        let extractor = YTSearchExtractor::new(DownloaderObj,&query).await?;
+        Ok(
+            Search{
+                extractor
+            }
+        )
+    }
+
 }
 
 type Schema = RootNode<'static, Query, EmptyMutation<Context>, EmptySubscription<Context>>;
