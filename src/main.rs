@@ -13,31 +13,53 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::str::FromStr;
 use search::Search;
+use rusty_pipe::youtube_extractor::error::ParsingError;
+
+use lazy_static::lazy_static;
+
+lazy_static!{
+    static ref download_reqwest_client:reqwest::Client = reqwest::Client::new();
+}
 
 // use juniper_warp::
 struct DownloaderObj;
 
 #[async_trait]
 impl Downloader for DownloaderObj {
-    async fn download(&self, url: &str) -> Result<String, String> {
-        // println!("query url : {}",url);
-        let resp = reqwest::get(url).await.map_err(|er| er.to_string())?;
-        // println!("got response ");
-        let body = resp.text().await.map_err(|er| er.to_string())?;
-        // println!("suceess query");
+    async fn download(&self, url: &str) -> Result<String, ParsingError> {
+        println!("query url : {}", url);
+        let resp = download_reqwest_client.get(url).send().await.map_err(
+            |er| ParsingError::DownloadError {
+                cause:er.to_string()
+            }
+        )?;
+        println!("got response ");
+        let body = resp.text().await.map_err(
+            |er| ParsingError::DownloadError {
+                cause:er.to_string()
+            }
+        )?;
+        println!("suceess query");
         Ok(String::from(body))
     }
 
-    async fn download_with_header(&self, url: &str, header: HashMap<String, String, RandomState>) -> Result<String, String> {
-        let client=reqwest::Client::new();
-        let res = client.get(url);
+    async fn download_with_header(
+        &self,
+        url: &str,
+        header: HashMap<String, String>,
+    ) -> Result<String, ParsingError> {
+        // let client = reqwest::Client::new();
+        let res = download_reqwest_client.get(url);
         let mut headers = reqwest::header::HeaderMap::new();
-        for header in header{
-            headers.insert(reqwest::header::HeaderName::from_str(&header.0).map_err(|e|e.to_string())?, header.1.parse().unwrap());
+        for header in header {
+            headers.insert(
+                reqwest::header::HeaderName::from_str(&header.0).map_err(|e| e.to_string())?,
+                header.1.parse().unwrap(),
+            );
         }
         let res = res.headers(headers);
-        let res = res.send().await.map_err(|er|er.to_string())?;
-        let body = res.text().await.map_err(|er|er.to_string())?;
+        let res = res.send().await.map_err(|er| er.to_string())?;
+        let body = res.text().await.map_err(|er| er.to_string())?;
         Ok(String::from(body))
     }
 }
