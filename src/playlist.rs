@@ -59,6 +59,7 @@ impl Playlist {
         for vid in self.extractor.get_videos()? {
             videos.push(VideoResult {
                 name: vid.get_name()?,
+                video_id: vid.video_id()?,
                 is_ad: vid.is_ad().unwrap_or(false),
                 is_premium_video: vid.is_premium_video().unwrap_or(false),
                 url: vid.get_url()?,

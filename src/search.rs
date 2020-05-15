@@ -20,6 +20,7 @@ impl Search {
             result.push(match item {
                 YTSearchItem::StreamInfoItem(vid) => SearchResult::VideoInfo(VideoResult {
                     name: vid.get_name()?,
+                    video_id: vid.video_id()?,
                     is_ad: vid.is_ad().unwrap_or(false),
                     is_premium_video: vid.is_premium_video().unwrap_or(false),
                     url: vid.get_url()?,
@@ -42,6 +43,7 @@ impl Search {
                 YTSearchItem::ChannelInfoItem(channel) => {
                     SearchResult::ChannelInfo(ChannelResult {
                         name: channel.get_name()?,
+                        channel_id: channel.channel_id()?,
                         thumbnail: channel
                             .get_thumbnails()?
                             .iter()
@@ -60,6 +62,7 @@ impl Search {
                 YTSearchItem::PlaylistInfoItem(playlist) => {
                     SearchResult::PlaylistInfo(PlaylistResult {
                         name: playlist.get_name()?,
+                        playlist_id: playlist.playlist_id()?,
                         thumbnail: playlist
                             .get_thumbnails()?
                             .iter()
@@ -87,6 +90,7 @@ impl Search {
 #[derive(juniper::GraphQLObject)]
 pub struct VideoResult {
     pub name: String,
+    pub video_id: String,
     pub is_ad: bool,
     pub is_premium_video: bool,
     pub url: String,
@@ -102,6 +106,7 @@ pub struct VideoResult {
 #[derive(juniper::GraphQLObject)]
 pub struct PlaylistResult {
     name: String,
+    playlist_id: String,
     thumbnail: Vec<Thumbnail>,
     url: String,
     uploader_name: Option<String>,
@@ -111,6 +116,7 @@ pub struct PlaylistResult {
 #[derive(juniper::GraphQLObject)]
 pub struct ChannelResult {
     name: String,
+    channel_id: String,
     thumbnail: Vec<Thumbnail>,
     url: String,
     subscribers: Option<i32>,
