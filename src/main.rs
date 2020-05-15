@@ -1,24 +1,31 @@
+mod channel;
+mod playlist;
 mod search;
 
-use serde::{Serialize,Deserialize};
+use serde::{Deserialize, Serialize};
 
 use async_trait::async_trait;
 use rusty_pipe::downloader_trait::Downloader;
-use rusty_pipe::youtube_extractor::stream_extractor::YTStreamExtractor;
 use rusty_pipe::youtube_extractor::search_extractor::{YTSearchExtractor, YTSearchItem};
+use rusty_pipe::youtube_extractor::stream_extractor::YTStreamExtractor;
 
 use juniper::{EmptyMutation, EmptySubscription, FieldError, RootNode};
-use warp::{http::Response, Filter};
+use rusty_pipe::youtube_extractor::error::ParsingError;
+use search::Search;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::str::FromStr;
-use search::Search;
-use rusty_pipe::youtube_extractor::error::ParsingError;
+use warp::{http::Response, Filter};
 
+use crate::channel::Channel;
+use crate::playlist::Playlist;
 use lazy_static::lazy_static;
+use rusty_pipe::utils::utils::fix_thumbnail_url;
+use rusty_pipe::youtube_extractor::channel_extractor::YTChannelExtractor;
+use rusty_pipe::youtube_extractor::playlist_extractor::YTPlaylistExtractor;
 
-lazy_static!{
-    static ref download_reqwest_client:reqwest::Client = reqwest::Client::new();
+lazy_static! {
+    static ref download_reqwest_client: reqwest::Client = reqwest::Client::new();
 }
 
 // use juniper_warp::
@@ -28,17 +35,20 @@ struct DownloaderObj;
 impl Downloader for DownloaderObj {
     async fn download(&self, url: &str) -> Result<String, ParsingError> {
         println!("query url : {}", url);
-        let resp = download_reqwest_client.get(url).send().await.map_err(
-            |er| ParsingError::DownloadError {
-                cause:er.to_string()
-            }
-        )?;
+        let resp = download_reqwest_client
+            .get(url)
+            .send()
+            .await
+            .map_err(|er| ParsingError::DownloadError {
+                cause: er.to_string(),
+            })?;
         println!("got response ");
-        let body = resp.text().await.map_err(
-            |er| ParsingError::DownloadError {
-                cause:er.to_string()
-            }
-        )?;
+        let body = resp
+            .text()
+            .await
+            .map_err(|er| ParsingError::DownloadError {
+                cause: er.to_string(),
+            })?;
         println!("suceess query");
         Ok(String::from(body))
     }
@@ -72,8 +82,6 @@ struct Video {
     extractor: YTStreamExtractor<DownloaderObj>,
 }
 
-
-
 #[juniper::graphql_object(Context = Context)]
 impl Video {
     fn video_streams(&self) -> Result<Vec<StreamItem>, FieldError> {
@@ -81,9 +89,7 @@ impl Video {
         let mut v = vec![];
         for stream in streams {
             let stream_str = serde_json::to_string(&stream)?;
-            v.push(
-                serde_json::from_str(&stream_str)?
-            );
+            v.push(serde_json::from_str(&stream_str)?);
         }
         Ok(v)
     }
@@ -92,9 +98,7 @@ impl Video {
         let mut v = vec![];
         for stream in streams {
             let stream_str = serde_json::to_string(&stream)?;
-            v.push(
-                serde_json::from_str(&stream_str)?
-            );
+            v.push(serde_json::from_str(&stream_str)?);
         }
         Ok(v)
     }
@@ -103,80 +107,71 @@ impl Video {
         let mut v = vec![];
         for stream in streams {
             let stream_str = serde_json::to_string(&stream)?;
-            v.push(
-                serde_json::from_str(&stream_str)?
-            );
+            v.push(serde_json::from_str(&stream_str)?);
         }
         Ok(v)
     }
 
-    fn title(&self)->Result<String,FieldError>{
+    fn title(&self) -> Result<String, FieldError> {
         Ok(self.extractor.get_name()?)
     }
 
-    fn description(&self)->Result<String,FieldError>{
+    fn description(&self) -> Result<String, FieldError> {
         Ok(self.extractor.get_description(false)?.0)
     }
 
-    fn uploader_name(&self)->Result<String,FieldError>{
+    fn uploader_name(&self) -> Result<String, FieldError> {
         Ok(self.extractor.get_uploader_name()?)
     }
 
-    fn uploader_url(&self)->Result<String,FieldError>{
+    fn uploader_url(&self) -> Result<String, FieldError> {
         Ok(self.extractor.get_uploader_url()?)
     }
 
-    fn video_thumbnails(&self)->Result<Vec<Thumbnail>,FieldError>{
+    fn video_thumbnails(&self) -> Result<Vec<Thumbnail>, FieldError> {
         let thumbs = self.extractor.get_video_thumbnails()?;
         let mut thumbf = vec![];
-        for thumb in thumbs{
-            thumbf.push(
-                Thumbnail{
-                    url:thumb.url,
-                    height: thumb.height as i32,
-                    width: thumb.width as i32
-                }
-            )
+        for thumb in thumbs {
+            thumbf.push(Thumbnail {
+                url: fix_thumbnail_url(&thumb.url),
+                height: thumb.height as i32,
+                width: thumb.width as i32,
+            })
         }
         Ok(thumbf)
     }
 
-    fn uploader_thumbnails(&self)->Result<Vec<Thumbnail>,FieldError>{
+    fn uploader_thumbnails(&self) -> Result<Vec<Thumbnail>, FieldError> {
         let thumbs = self.extractor.get_uploader_avatar_url()?;
         let mut thumbf = vec![];
-        for thumb in thumbs{
-            thumbf.push(
-                Thumbnail{
-                    url:thumb.url,
-                    height: thumb.height as i32,
-                    width: thumb.width as i32
-                }
-            )
+        for thumb in thumbs {
+            thumbf.push(Thumbnail {
+                url: fix_thumbnail_url(&thumb.url),
+                height: thumb.height as i32,
+                width: thumb.width as i32,
+            })
         }
         Ok(thumbf)
     }
 
-    fn likes(&self)->Result<i32,FieldError>{
+    fn likes(&self) -> Result<i32, FieldError> {
         Ok(self.extractor.get_like_count()? as i32)
     }
 
-    fn dislikes(&self)->Result<i32,FieldError>{
+    fn dislikes(&self) -> Result<i32, FieldError> {
         Ok(self.extractor.get_dislike_count()? as i32)
     }
 
-    fn views(&self)->Result<i32,FieldError>{
+    fn views(&self) -> Result<i32, FieldError> {
         Ok(self.extractor.get_view_count()? as i32)
     }
 
-    fn length(&self)->Result<i32,FieldError>{
+    fn length(&self) -> Result<i32, FieldError> {
         Ok(self.extractor.get_length()? as i32)
     }
-
 }
 
-
-
-#[derive(juniper::GraphQLObject,Serialize,Deserialize)]
+#[derive(juniper::GraphQLObject, Serialize, Deserialize)]
 pub struct StreamItem {
     pub url: String,
     pub itag: i32,
@@ -195,11 +190,11 @@ pub struct StreamItem {
     pub mimeType: String,
 }
 
-#[derive(juniper::GraphQLObject,Serialize,Deserialize)]
-pub struct Thumbnail{
-    url:String,
-    width:i32,
-    height:i32
+#[derive(juniper::GraphQLObject, Serialize, Deserialize)]
+pub struct Thumbnail {
+    url: String,
+    width: i32,
+    height: i32,
 }
 
 struct Query;
@@ -213,15 +208,23 @@ impl Query {
         })
     }
 
-    async fn search(query: String) -> Result<Search, FieldError>{
-        let extractor = YTSearchExtractor::new(DownloaderObj,&query).await?;
-        Ok(
-            Search{
-                extractor
-            }
-        )
+    async fn search(query: String, page_url: Option<String>) -> Result<Search, FieldError> {
+        let extractor = YTSearchExtractor::new(DownloaderObj, &query, page_url).await?;
+        Ok(Search { extractor })
     }
 
+    async fn channel(channel_id: String, page_url: Option<String>) -> Result<Channel, FieldError> {
+        let extractor = YTChannelExtractor::new(&channel_id, DownloaderObj, page_url).await?;
+        Ok(Channel { extractor })
+    }
+
+    async fn playlist(
+        playlist_id: String,
+        page_url: Option<String>,
+    ) -> Result<Playlist, FieldError> {
+        let extractor = YTPlaylistExtractor::new(&playlist_id, DownloaderObj, page_url).await?;
+        Ok(Playlist { extractor })
+    }
 }
 
 type Schema = RootNode<'static, Query, EmptyMutation<Context>, EmptySubscription<Context>>;
