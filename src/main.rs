@@ -1,6 +1,7 @@
 mod channel;
 mod playlist;
 mod search;
+mod trending;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,10 +20,12 @@ use warp::{http::Response, Filter};
 
 use crate::channel::Channel;
 use crate::playlist::Playlist;
+use crate::trending::Trending;
 use lazy_static::lazy_static;
 use rusty_pipe::utils::utils::fix_thumbnail_url;
 use rusty_pipe::youtube_extractor::channel_extractor::YTChannelExtractor;
 use rusty_pipe::youtube_extractor::playlist_extractor::YTPlaylistExtractor;
+use rusty_pipe::youtube_extractor::trending_extractor::YTTrendingExtractor;
 
 lazy_static! {
     static ref download_reqwest_client: reqwest::Client = reqwest::Client::new();
@@ -224,6 +227,11 @@ impl Query {
     ) -> Result<Playlist, FieldError> {
         let extractor = YTPlaylistExtractor::new(&playlist_id, DownloaderObj, page_url).await?;
         Ok(Playlist { extractor })
+    }
+
+    async fn trending() -> Result<Trending, FieldError> {
+        let extractor = YTTrendingExtractor::new(DownloaderObj).await?;
+        Ok(Trending { extractor })
     }
 }
 
