@@ -265,13 +265,15 @@ async fn main() {
     let state = warp::any().map(move || Context {});
     let graphql_filter = juniper_warp::make_graphql_filter(schema(), state.boxed());
 
+    let cors = warp::cors().allow_any_origin();
+
     warp::serve(
         warp::get()
             .and(warp::path("graphiql"))
             .and(juniper_warp::graphiql_filter("/graphql", None))
             .or(homepage)
             .or(warp::path("graphql").and(graphql_filter))
-            .with(log),
+            .with(log).with(cors),
     )
     .run((
         [0, 0, 0, 0],
