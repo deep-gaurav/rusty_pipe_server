@@ -265,7 +265,10 @@ async fn main() {
     let state = warp::any().map(move || Context {});
     let graphql_filter = juniper_warp::make_graphql_filter(schema(), state.boxed());
 
-    let cors = warp::cors().allow_any_origin();
+    let cors = warp::cors().allow_any_origin()
+        .allow_methods(vec!["POST","GET"])
+        .allow_headers(vec!["User-Agent", "Sec-Fetch-Mode","x-apollo-tracing","content-type", "Referer", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"])
+    .build(); 
 
     warp::serve(
         warp::get()
@@ -273,7 +276,7 @@ async fn main() {
             .and(juniper_warp::graphiql_filter("/graphql", None))
             .or(homepage)
             .or(warp::path("graphql").and(graphql_filter))
-            .with(log).with(cors),
+            .with(cors).with(log),
     )
     .run((
         [0, 0, 0, 0],
