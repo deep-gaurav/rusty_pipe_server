@@ -36,11 +36,9 @@ struct DownloaderObj;
 
 #[async_trait]
 impl Downloader for DownloaderObj {
-    async fn download(&self, url: &str) -> Result<String, ParsingError> {
+    async fn download(url: &str) -> Result<String, ParsingError> {
         println!("query url : {}", url);
-        let resp = download_reqwest_client
-            .get(url)
-            .send()
+        let resp = reqwest::get(url)
             .await
             .map_err(|er| ParsingError::DownloadError {
                 cause: er.to_string(),
@@ -57,12 +55,11 @@ impl Downloader for DownloaderObj {
     }
 
     async fn download_with_header(
-        &self,
         url: &str,
         header: HashMap<String, String>,
     ) -> Result<String, ParsingError> {
-        // let client = reqwest::Client::new();
-        let res = download_reqwest_client.get(url);
+        let client = reqwest::Client::new();
+        let res = client.get(url);
         let mut headers = reqwest::header::HeaderMap::new();
         for header in header {
             headers.insert(
@@ -74,6 +71,19 @@ impl Downloader for DownloaderObj {
         let res = res.send().await.map_err(|er| er.to_string())?;
         let body = res.text().await.map_err(|er| er.to_string())?;
         Ok(String::from(body))
+    }
+
+    fn eval_js(script: &str) -> Result<String, String> {
+        use quick_js::{Context, JsValue};
+        let context = Context::new().expect("Cant create js context");
+        // println!("decryption code \n{}",decryption_code);
+        // println!("signature : {}",encrypted_sig);
+        println!("jscode \n{}", script);
+        let res = context.eval(script).unwrap_or(quick_js::JsValue::Null);
+        // println!("js result : {:?}", result);
+        let result = res.into_string().unwrap_or("".to_string());
+        print!("JS result: {}", result);
+        Ok(result)
     }
 }
 
@@ -212,12 +222,12 @@ impl Query {
     }
 
     async fn search(query: String, page_url: Option<String>) -> Result<Search, FieldError> {
-        let extractor = YTSearchExtractor::new(DownloaderObj, &query, page_url).await?;
+        let extractor = YTSearchExtractor::new::<DownloaderObj>( &query, page_url).await?;
         Ok(Search { extractor })
     }
 
     async fn channel(channel_id: String, page_url: Option<String>) -> Result<Channel, FieldError> {
-        let extractor = YTChannelExtractor::new(&channel_id, DownloaderObj, page_url).await?;
+        let extractor = YTChannelExtractor::new::<DownloaderObj>(&channel_id,  page_url).await?;
         Ok(Channel { extractor })
     }
 

@@ -11,7 +11,7 @@ pub struct Search {
 #[juniper::graphql_object(Context = Context)]
 impl Search {
     async fn suggestion(&self) -> Result<Vec<String>, FieldError> {
-        Ok(self.extractor.get_search_suggestion(&DownloaderObj).await?)
+        Ok(YTSearchExtractor::get_search_suggestion::<DownloaderObj>("").await.map_err(|e|format!("{:#?}",e))?)
     }
 
     fn result(&self) -> Result<Vec<SearchResult>, FieldError> {
