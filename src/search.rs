@@ -105,23 +105,23 @@ pub struct VideoResult {
 
 #[derive(juniper::GraphQLObject)]
 pub struct PlaylistResult {
-    name: String,
-    playlist_id: String,
-    thumbnail: Vec<Thumbnail>,
-    url: String,
-    uploader_name: Option<String>,
-    videos: Option<i32>,
+    pub name: String,
+    pub playlist_id: String,
+    pub thumbnail: Vec<Thumbnail>,
+    pub url: String,
+    pub uploader_name: Option<String>,
+    pub videos: Option<i32>,
 }
 
 #[derive(juniper::GraphQLObject)]
 pub struct ChannelResult {
-    name: String,
-    channel_id: String,
-    thumbnail: Vec<Thumbnail>,
-    url: String,
-    subscribers: Option<i32>,
-    videos: Option<i32>,
-    description: Option<String>,
+    pub name: String,
+    pub channel_id: String,
+    pub thumbnail: Vec<Thumbnail>,
+    pub url: String,
+    pub subscribers: Option<i32>,
+    pub videos: Option<i32>,
+    pub description: Option<String>,
 }
 
 #[derive(juniper::GraphQLUnion)]
