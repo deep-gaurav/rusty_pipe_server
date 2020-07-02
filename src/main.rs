@@ -260,7 +260,7 @@ impl Video {
 pub struct StreamItem {
     pub url: String,
     pub itag: i32,
-    pub approxDurationMs: String,
+    pub approxDurationMs: Option<String>,
     pub audioChannels: Option<i32>,
     pub audioQuality: Option<String>,
     pub audioSampleRate: Option<String>,
