@@ -1548,6 +1548,7 @@ dependencies = [
  "env_logger",
  "futures 0.3.5",
  "futures-util",
+ "hyper",
  "hyper-tls",
  "juniper",
  "juniper_codegen",

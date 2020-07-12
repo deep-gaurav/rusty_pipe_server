@@ -32,7 +32,7 @@ use rusty_pipe::youtube_extractor::trending_extractor::YTTrendingExtractor;
 use crate::search::*;
 
 lazy_static! {
-    static ref download_reqwest_client: reqwest::Client = reqwest::Client::new();
+    pub static ref download_reqwest_client: reqwest::Client = reqwest::Client::new();
 }
 
 // use juniper_warp::
