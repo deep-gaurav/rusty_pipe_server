@@ -2,6 +2,7 @@ mod channel;
 mod playlist;
 mod search;
 mod trending;
+mod vidproxy;
 
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,7 @@ use warp::{http::Response, Filter};
 use crate::channel::Channel;
 use crate::playlist::Playlist;
 use crate::trending::Trending;
+use crate::vidproxy::vidproxyhandle;
 use lazy_static::lazy_static;
 use rusty_pipe::utils::utils::fix_thumbnail_url;
 use rusty_pipe::youtube_extractor::channel_extractor::YTChannelExtractor;
@@ -40,7 +42,8 @@ struct DownloaderObj;
 impl Downloader for DownloaderObj {
     async fn download(url: &str) -> Result<String, ParsingError> {
         println!("query url : {}", url);
-        let resp = reqwest::get(url)
+        let resp = download_reqwest_client.get(url)
+            .send()
             .await
             .map_err(|er| ParsingError::DownloadError {
                 cause: er.to_string(),
@@ -60,7 +63,7 @@ impl Downloader for DownloaderObj {
         url: &str,
         header: HashMap<String, String>,
     ) -> Result<String, ParsingError> {
-        let client = reqwest::Client::new();
+        let client = &download_reqwest_client;
         let res = client.get(url);
         let mut headers = reqwest::header::HeaderMap::new();
         for header in header {
@@ -350,7 +353,8 @@ async fn main() {
     let cors = warp::cors().allow_any_origin()
         .allow_methods(vec!["POST","GET"])
         .allow_headers(vec!["User-Agent", "Sec-Fetch-Mode","x-apollo-tracing","content-type", "Referer", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"])
-    .build(); 
+    .build();
+    let vidproxy = warp::path!("vid" / String / u32).and_then(vidproxyhandle); 
 
     warp::serve(
         warp::get()
@@ -358,6 +362,7 @@ async fn main() {
             .and(juniper_warp::graphiql_filter("/graphql", None))
             .or(homepage)
             .or(warp::path("graphql").and(graphql_filter))
+            .or(vidproxy)
             .with(cors).with(log),
     )
     .run((
