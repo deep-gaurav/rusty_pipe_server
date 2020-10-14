@@ -22,9 +22,9 @@ use rusty_pipe::youtube_extractor::channel_extractor::YTChannelExtractor;
 use rusty_pipe::youtube_extractor::playlist_extractor::YTPlaylistExtractor;
 use rusty_pipe::youtube_extractor::trending_extractor::YTTrendingExtractor;
 
-lazy_static! {
-    pub static ref download_reqwest_client: reqwest::Client = reqwest::Client::new();
-}
+// lazy_static! {
+//     pub static ref download_reqwest_client: reqwest::Client = reqwest::Client::new();
+// }
 
 use crate::search::*;
 // use juniper_warp::
@@ -34,13 +34,11 @@ pub struct DownloaderObj;
 impl Downloader for DownloaderObj {
     async fn download(url: &str) -> Result<String, ParsingError> {
         println!("query url : {}", url);
-        let resp = download_reqwest_client
-            .get(url)
-            .send()
-            .await
-            .map_err(|er| ParsingError::DownloadError {
+        let resp = reqwest::Client::new().get(url).send().await.map_err(|er| {
+            ParsingError::DownloadError {
                 cause: er.to_string(),
-            })?;
+            }
+        })?;
         println!("got response ");
         let body = resp
             .text()
@@ -56,7 +54,7 @@ impl Downloader for DownloaderObj {
         url: &str,
         header: HashMap<String, String>,
     ) -> Result<String, ParsingError> {
-        let client = &download_reqwest_client;
+        let client = &reqwest::Client::new();
         let res = client.get(url);
         let mut headers = reqwest::header::HeaderMap::new();
         for header in header {
@@ -76,11 +74,11 @@ impl Downloader for DownloaderObj {
         let context = Context::new().expect("Cant create js context");
         // println!("decryption code \n{}",decryption_code);
         // println!("signature : {}",encrypted_sig);
-        println!("jscode \n{}", script);
+        // println!("jscode \n{}", script);
         let res = context.eval(script).unwrap_or(quick_js::JsValue::Null);
         // println!("js result : {:?}", result);
         let result = res.into_string().unwrap_or("".to_string());
-        print!("JS result: {}", result);
+        // print!("JS result: {}", result);
         Ok(result)
     }
 }
