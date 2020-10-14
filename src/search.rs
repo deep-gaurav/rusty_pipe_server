@@ -1,7 +1,7 @@
 use juniper::FieldError;
 
 use super::Context;
-use crate::{DownloaderObj, Thumbnail};
+use crate::serverrunner::{DownloaderObj, Thumbnail};
 use rusty_pipe::utils::utils::fix_thumbnail_url;
 use rusty_pipe::youtube_extractor::search_extractor::{YTSearchExtractor, YTSearchItem};
 
@@ -11,7 +11,11 @@ pub struct Search {
 #[juniper::graphql_object(Context = Context)]
 impl Search {
     async fn suggestion(&self) -> Result<Vec<String>, FieldError> {
-        Ok(YTSearchExtractor::get_search_suggestion::<DownloaderObj>("").await.map_err(|e|format!("{:#?}",e))?)
+        Ok(
+            YTSearchExtractor::get_search_suggestion::<DownloaderObj>("")
+                .await
+                .map_err(|e| format!("{:#?}", e))?,
+        )
     }
 
     fn result(&self) -> Result<Vec<SearchResult>, FieldError> {
